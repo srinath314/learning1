@@ -1,11 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Jan 25 22:24:56 2021
-
-@author: bssr003
-"""
-
-
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
