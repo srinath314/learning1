@@ -1,0 +1,225 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Jan 25 22:24:56 2021
+
+@author: bssr003
+"""
+
+
+import matplotlib.pyplot as plt
+import tensorflow as tf
+import numpy as np
+import pandas as pd
+import random
+
+#-------------------------------------------------------------------------------------
+#oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+#-------------------------------------------------------------------------------------
+Data = pd.read_csv(r'C://Users//bssr003//OneDrive - Brunel University London//PROJECTS//AI6S//GTS_data//package_trial//gts_data2.csv')
+
+#Data = pd.read_csv(
+#"C://Users//bssr003//OneDrive - Brunel University London//PROJECTS//AI6S//GTS_data//ML_code1//gts_data2.csv", header=None,
+#names=["1", "2", "3", "4", "5"])
+
+input_parameters = 3
+output_parameters  = 2
+number_of_iterations = 50
+
+fit_factor = 0.03 #percentage error between mean square error of test data and train data (normalised)
+
+flag = 1
+#Data1=Data.dropna()
+while flag > 0:
+    x = np.array(Data)  #np.random.randint(100, size=(3000, 7))
+    
+    rows = len(x[:,0])
+    col = len(x[1,:])
+    
+    x_ip = x[:, 0:col-output_parameters]
+    x_op = x[:, col-output_parameters:col]
+    
+    y = np.zeros([rows, col])
+    
+    
+    #NORMALISATION OF DATA
+    
+    for j in range(len(x[0,:])):
+        
+        for i in range(len(x[:,j])):
+            
+            y[i, j] = (x[i, j]-np.min(x[:,j]))/(np.max(x[:,j])-np.min(x[:,j]))
+        
+    x_ip_norm = y[:, 0:col-output_parameters] 
+    x_op_norm = y[:, col-output_parameters:col] 
+    
+    n_test = random.sample(range(0, len(x[:,0])), int(np.round(0.2*len(x[:,0]))))
+    
+    
+    x_test = np.zeros([len(n_test), col])
+    
+    for i in range(len(n_test)):
+        
+        x_test[i, :] = y[n_test[i], :]
+         
+    
+    x_train = np.delete(y, n_test, 0)
+    
+    ip_train = x_train[:, 0:col-output_parameters]
+    op_train = x_train[:, col-output_parameters:col]
+    #np.savetxt('export.csv', op_train, delimiter=',')    
+    ip_test = x_test[:, 0:col-output_parameters]
+    op_test = x_test[:, col-output_parameters:col]
+    
+    #-------------------------------------------------------------------------------------
+    #oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+    #-------------------------------------------------------------------------------------
+    
+    #training_data = np.array([ [1,0,0,0,0,0,1,0,1,0],[1,0,1,1,1,0,1,1,0,0],[1,0,1,0,0,1,1,0,1,1],[0,1,0,1,0,1,1,0,1,1],[0,0,1,0,1,0,0,1,0,1],[0,1,0,1,0,1,0,0,0,0],[1,1,1,0,0,1,1,1,1,1],[1,1,0,1,1,1,0,0,1,0],[0,1,0,0,1,1,1,1,0,0],[1,1,0,0,0,1,1,1,1,0],[1,0,0,0,1,1,1,0,0,1],[1,1,1,1,0,1,0,0,1,0],[1,0,0,1,1,0,0,0,1,0],[0,1,1,1,1,0,1,0,0,0],[0,1,0,0,0,0,1,0,1,0],[1,0,0,1,1,0,1,0,1,0],[1,0,0,1,1,0,0,1,1,1],[0,0,1,1,1,0,0,0,1,1],[0,1,0,1,1,0,1,1,1,1],[0,1,0,1,0,1,0,0,0,1] ])
+    #target_data = np.array([[1,0],[0,0],[1,1],[1,1],[0,1],[0,0],[1,1],[1,0],[0,0],[1,0],[0,1],[1,0],[1,0],[0,0],[1,0],[1,0],[1,1],[1,1],[1,1],[0,1]])
+    
+    training_data = np.float32(ip_train)#np.array([[0,0],[0,0.5],[0.3,0],[1,1]], "float32")
+    target_data = np.float32(op_train)#np.array([[0],[1],[0.6],[0.1]], "float32")
+    
+    model = tf.keras.models.Sequential()
+    
+    #Add layers
+    #model.add(tf.keras.layers.Dense(50, input_dim=6 , activation='relu'))
+    model.add(tf.keras.layers.Dense(2000, input_dim=3 , activation='relu'))
+    model.add(tf.keras.layers.Dense(999, activation='relu'))
+    model.add(tf.keras.layers.Dense(500, activation='relu'))
+    #model.add(tf.keras.layers.Dense(299, activation='relu'))
+    model.add(tf.keras.layers.Dense(output_parameters, activation='sigmoid'))
+    model.compile(loss='mean_squared_error',
+                  optimizer='Adam',
+                  metrics=['accuracy'])
+    
+    #history = model.fit(training_data, target_data, nb_epoch=500)
+    
+    #history = model.fit(training_data, target_data, epochs=1000, ip_test, op_test)
+    iter = number_of_iterations
+    print('a')
+    history = model.fit(training_data, target_data, epochs=iter, validation_data=(ip_test, op_test))
+    #callback = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=2)
+    #print(model.predict(training_data))
+    #print(model.predict(ip_test))
+    #print(model.evaluate(ip_test, op_test))
+    #model.save('C:\\Users\\bssr003\\OneDrive - Brunel University London\\PROJECTS\\Rohit_paper\\New folder\\Weld_data_15mm.h5')
+    weights = model.get_weights()
+    
+    pred_test = model.predict(ip_test)
+    
+    
+    pred_train = model.predict(ip_train)
+    
+    pred_total = model.predict(x_ip_norm)
+    print('b')
+    history_dict = history.history
+    loss_values = history_dict['loss']
+    val_loss_values = history_dict['val_loss']
+    epochs = range(1, iter + 1)
+    plt.plot(epochs, loss_values, 'bo', label='Training loss')
+    plt.plot(epochs, val_loss_values, 'b', label='Validation loss')
+    plt.title('Training and validation loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.show()
+    
+    #denormalisation of predicted test data
+    
+    Dnorm_pred_test = np.zeros([len(pred_test[:,0]), len(pred_test[0,:])])
+    
+    for j in range(len(pred_test[0,:])):
+        
+        for i in range(len(pred_test[:,j])):
+            
+            Dnorm_pred_test[i, j] = pred_test[i, j]*(np.max(x_op[:,j])-np.min(x_op[:,j]))+np.min(x_op[:,j])
+    
+    #denormalisation of test data
+    
+    Dnorm_op_test = np.zeros([len(pred_test[:,0]), len(pred_test[0,:])])
+    
+    for j in range(len(op_test[0,:])):
+        
+        for i in range(len(op_test[:,j])):
+            
+            Dnorm_op_test[i, j] = op_test[i, j]*(np.max(x_op[:,j])-np.min(x_op[:,j]))+np.min(x_op[:,j])        
+            
+    #denormalisation of predicted train data
+            
+    Dnorm_pred_train = np.zeros([len(pred_train[:,0]), len(pred_train[0,:])])
+    
+    for j in range(len(pred_train[0,:])):
+        
+        for i in range(len(pred_train[:,j])):
+            
+            Dnorm_pred_train[i, j] = pred_train[i, j]*(np.max(x_op[:,j])-np.min(x_op[:,j]))+np.min(x_op[:,j])
+     
+            
+     #denormalisation of training data
+     
+     
+    Dnorm_op_train = np.zeros([len(op_train[:,0]), len(op_train[0,:])])
+    
+    for j in range(len(op_train[0,:])):
+        
+        for i in range(len(op_train[:,j])):
+            
+            Dnorm_op_train[i, j] = op_train[i, j]*(np.max(x_op[:,j])-np.min(x_op[:,j]))+np.min(x_op[:,j])
+            
+    
+    #denormalisation of all data
+    
+    
+    Dnorm_op = np.zeros([len(x_op_norm[:,0]), len(x_op_norm[0,:])])
+    
+    for j in range(len(x_op_norm[0,:])):
+        
+        for i in range(len(x_op_norm[:,j])):
+            
+            Dnorm_op[i, j] = pred_total[i, j]*(np.max(x_op[:,j])-np.min(x_op[:,j]))+np.min(x_op[:,j])        
+    
+    
+    N_mse_test = (np.square(pred_test-op_test)).mean(axis=None)    
+    N_mse_train = (np.square(pred_train-op_train)).mean(axis=None)
+    N_mse_total = (np.square(x_op_norm-pred_total)).mean(axis=None)
+    
+    print(N_mse_test)  
+    print(N_mse_train) 
+    print(N_mse_total) 
+    
+    
+    mse_test = (np.square(Dnorm_op_test-Dnorm_pred_test)).mean(axis=None)    
+    mse_train = (np.square(Dnorm_op_train-Dnorm_pred_train)).mean(axis=None)
+    mse_total = (np.square(Dnorm_op-x_op)).mean(axis=None)
+    
+    print(mse_test)  
+    print(mse_train) 
+    print(mse_total) 
+    #np.save("weights_crown.npy", weights)
+    #plt.scatter(x_op,Dnorm_op)
+    #np.save("Kt1_weights_2.npy", weights)
+    #plt.xlabel("x")
+    #plt.ylabel("sinx")
+    
+    if abs(N_mse_train-N_mse_test)/np.min([N_mse_train, N_mse_test])<fit_factor:
+        flag=-1
+        np.save("GTS_8.npy", weights)
+        np.save("GTS_8_ip_test.npy", ip_test)
+        np.save("GTS_8_ip_train.npy", ip_train)
+        np.save("GTS_8_pred_test.npy", pred_test)
+        np.save("GTS_8_pred_train.npy", pred_train)
+"""
+np.save("GTS_6.npy", weights)
+np.save("GTS_6_ip_test.npy", ip_test)
+np.save("GTS_6_ip_train.npy", ip_train)
+np.save("GTS_6_pred_test.npy", pred_test)
+np.save("GTS_6_pred_train.npy", pred_train)
+
+0.000886376177437347
+0.0002300199742428132
+0.00035156767456784706
+13151596.987612171
+21779045.543457292
+20181397.828268114
+"""
